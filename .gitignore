@@ -1,0 +1,6 @@
+vendor/
+.idea/
+*.cache
+*.txt
+*.xml
+*.DS_Store

@@ -1,0 +1,34 @@
+{
+    "name": "koochik/queryhall",
+    "description": "A PHP package that allows you to sort, filter, and paginate Doctrine DBAL SQL database queries from Query parameters",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Koochik\\QueryHall\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Koochik\\Tests\\": "tests/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Sepehr Shariati",
+            "email": "emailedoctor@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=8.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5",
+        "doctrine/dbal": "^4.0",
+        "psr/http-message": "^2.0",
+        "phpstan/phpstan": "^1.10",
+        "mockery/mockery": "^1.6"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
