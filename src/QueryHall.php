@@ -8,6 +8,7 @@ use Koochik\QueryHall\Validators\BasicValidator;
 
 abstract class QueryHall
 {
+    protected $transformer = null;
     private mixed $QueryBuilder;
 
     private ParameterParser $Parser;
@@ -35,6 +36,25 @@ abstract class QueryHall
         $this->parametersArray = $parametersArray;
         $this->allowedMethods = [];
     }
+
+
+    // Add transformer setter
+    public function setTransformer(callable $transformer): self
+    {
+        $this->transformer = $transformer;
+        return $this;
+    }
+
+    // Modified to apply transformer
+    protected function transformResult(array $results): array
+    {
+        if ($this->transformer === null) {
+            return $results;
+        }
+
+        return array_map($this->transformer, $results);
+    }
+
 
     private function getMethodName(string $key): string
     {
@@ -66,6 +86,16 @@ abstract class QueryHall
 
     }
 
+//    public function getPaginatedResult(): array
+//    {
+//        $this->filter();
+//        $PaginatedQueryBuilder = clone $this->QueryBuilder;
+//        $meta = $this->getPaginationMeta(clone $PaginatedQueryBuilder, $this->perPage(), $this->currentPage());
+//        $this->paginate($PaginatedQueryBuilder, $this->perPage(), $this->currentPage());
+//        $data = $this->fetchResult($PaginatedQueryBuilder);
+//
+//        return ['data' => $data, 'meta' => $meta];
+//    }
 
     public function getPaginatedResult(): array
     {
@@ -75,8 +105,14 @@ abstract class QueryHall
         $this->paginate($PaginatedQueryBuilder, $this->perPage(), $this->currentPage());
         $data = $this->fetchResult($PaginatedQueryBuilder);
 
-        return ['data' => $data, 'meta' => $meta];
+        // Apply transformer to results
+        $transformedData = $this->transformResult($data);
+
+        return ['data' => $transformedData, 'meta' => $meta];
     }
+
+
+
 
     // responsible for returning the pagination meta as an array
     abstract protected function getPaginationMeta($query, $perPage, $page): array;

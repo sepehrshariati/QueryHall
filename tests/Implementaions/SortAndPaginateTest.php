@@ -437,9 +437,182 @@ class SortAndPaginateTest extends TestCase
     }
 
 
+    // =============================================                =============================================
+    // =============================================   Transformers =============================================
+    // =============================================                =============================================
+
+
+
+    public function testBasicTransformerAppliedToResults(): void
+    {
+        $queryBuilder = $this->connection->createQueryBuilder();
+        $queryBuilder->select('*')->from('users');
+
+        $SortAndPaginate = new SortAndPaginate($queryBuilder, ['p' => [1], 'perPage' => [2]]);
+
+        // Add a simple transformer that modifies the name field
+        $SortAndPaginate->setTransformer(function($row) {
+            $row['name'] = strtoupper($row['name']);
+            return $row;
+        });
+
+        $result = $SortAndPaginate->getPaginatedResult();
+
+        $expectedData = [
+            ['id' => 1, 'name' => 'JOHN', 'lastName' => 'Doe', 'age' => 25, 'isActive' => 1, 'height' => 179.5],
+            ['id' => 2, 'name' => 'ALICE', 'lastName' => 'Johnson', 'age' => 30, 'isActive' => '', 'height' => 165.3],
+        ];
+
+        $this->assertEquals($expectedData, $result['data']);
+    }
+
+    public function testTransformerWithComplexDataModification(): void
+    {
+        $queryBuilder = $this->connection->createQueryBuilder();
+        $queryBuilder->select('*')->from('users');
+
+        $SortAndPaginate = new SortAndPaginate($queryBuilder, ['p' => [1], 'perPage' => [2]]);
+
+        // Transform data into a different structure
+        $SortAndPaginate->setTransformer(function($row) {
+            return [
+                'fullName' => $row['name'] . ' ' . $row['lastName'],
+                'details' => [
+                    'age' => $row['age'],
+                    'heightInMeters' => $row['height'] / 100,
+                    'status' => $row['isActive'] ? 'Active' : 'Inactive'
+                ]
+            ];
+        });
+
+        $result = $SortAndPaginate->getPaginatedResult();
+
+        $expectedData = [
+            [
+                'fullName' => 'John Doe',
+                'details' => [
+                    'age' => 25,
+                    'heightInMeters' => 1.795,
+                    'status' => 'Active'
+                ]
+            ],
+            [
+                'fullName' => 'Alice Johnson',
+                'details' => [
+                    'age' => 30,
+                    'heightInMeters' => 1.653,
+                    'status' => 'Inactive'
+                ]
+            ]
+        ];
+
+        $this->assertEquals($expectedData, $result['data']);
+    }
+
+    public function testTransformerWithFieldFiltering(): void
+    {
+        $queryBuilder = $this->connection->createQueryBuilder();
+        $queryBuilder->select('*')->from('users');
+
+        $SortAndPaginate = new SortAndPaginate($queryBuilder, ['p' => [1], 'perPage' => [2]]);
+
+        // Transform to only include specific fields
+        $SortAndPaginate->setTransformer(function($row) {
+            return [
+                'id' => $row['id'],
+                'name' => $row['name']
+            ];
+        });
+
+        $result = $SortAndPaginate->getPaginatedResult();
+
+        $expectedData = [
+            ['id' => 1, 'name' => 'John'],
+            ['id' => 2, 'name' => 'Alice']
+        ];
+
+        $this->assertEquals($expectedData, $result['data']);
+    }
+
+    public function testTransformerChaining(): void
+    {
+        $queryBuilder = $this->connection->createQueryBuilder();
+        $queryBuilder->select('*')->from('users');
+
+        $SortAndPaginate = new SortAndPaginate($queryBuilder, ['p' => [1], 'perPage' => [2]]);
+
+        // Test method chaining with transformer
+        $result = $SortAndPaginate
+            ->setTransformer(function($row) {
+                return ['name' => $row['name']];
+            })
+            ->getPaginatedResult();
+
+        $expectedData = [
+            ['name' => 'John'],
+            ['name' => 'Alice']
+        ];
+
+        $this->assertEquals($expectedData, $result['data']);
+    }
+
+    public function testTransformerWithSortingAndFiltering(): void
+    {
+        $queryBuilder = $this->connection->createQueryBuilder();
+        $queryBuilder->select('*')->from('users');
+
+        $SortAndPaginate = new SortAndPaginate($queryBuilder, [
+            'p' => [1],
+            'perPage' => [3],
+            'sort' => ['age', -1],
+            'where' => ['isActive', '=', true]
+        ]);
+
+        $SortAndPaginate->setTransformer(function($row) {
+            return [
+                'name' => $row['name'],
+                'age' => $row['age'],
+                'ageGroup' => $row['age'] < 30 ? 'Young' : 'Adult'
+            ];
+        });
+
+        $result = $SortAndPaginate->getPaginatedResult();
+
+        $expectedData = [
+            ['name' => 'Emily', 'age' => 35, 'ageGroup' => 'Adult'],
+            ['name' => 'James', 'age' => 32, 'ageGroup' => 'Adult'],
+            ['name' => 'Benjamin', 'age' => 31, 'ageGroup' => 'Adult']
+        ];
+
+        $this->assertEquals($expectedData, $result['data']);
+    }
+
+    public function testNullTransformer(): void
+    {
+        $queryBuilder = $this->connection->createQueryBuilder();
+        $queryBuilder->select('*')->from('users');
+
+        $SortAndPaginate = new SortAndPaginate($queryBuilder, ['p' => [1], 'perPage' => [2]]);
+
+        // Don't set any transformer
+        $result = $SortAndPaginate->getPaginatedResult();
+
+        $expectedData = [
+            ['id' => 1, 'name' => 'John', 'lastName' => 'Doe', 'age' => 25, 'isActive' => 1, 'height' => 179.5],
+            ['id' => 2, 'name' => 'Alice', 'lastName' => 'Johnson', 'age' => 30, 'isActive' => '', 'height' => 165.3],
+        ];
+
+        $this->assertEquals($expectedData, $result['data']);
+    }
+
+
+
     protected function tearDown(): void
     {
         // Close the database connection
         $this->connection->close();
     }
+
+
+
 }
