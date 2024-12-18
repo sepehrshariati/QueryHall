@@ -25,7 +25,9 @@ final class SortAndPaginate extends QueryHall
         }else{
             $query->select('COUNT(*) as total');
         }
-        $total = $query->executeQuery()->fetchAssociative()['total'];
+
+        $result = $query->executeQuery()->fetchAssociative();
+        $total = $result ? $result['total'] : 0;
         $lastPage = ceil($total / $perPage);
 
         return [
