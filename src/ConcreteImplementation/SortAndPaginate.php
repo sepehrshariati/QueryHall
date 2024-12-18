@@ -6,15 +6,25 @@ use Koochik\QueryHall\QueryHall;
 
 final class SortAndPaginate extends QueryHall
 {
+
+    private bool $is_PostgreSQL=false;
+
+    public function TypePostgreSQL(){
+        $this->is_PostgreSQL=true;
+    }
+
     protected function paginate($query, $perPage, $page): void
     {
         $offset = ($page - 1) * $perPage;
         $query->setFirstResult($offset)->setMaxResults($perPage);
     }
-
     protected function getPaginationMeta($query, $perPage, $page): array
     {
-        $query->select('COUNT(*) as total');
+        if($this->is_PostgreSQL){
+            $query->select('COUNT(*) OVER() as total');
+        }else{
+            $query->select('COUNT(*) as total');
+        }
         $total = $query->executeQuery()->fetchAssociative()['total'];
         $lastPage = ceil($total / $perPage);
 
@@ -27,7 +37,6 @@ final class SortAndPaginate extends QueryHall
             'to' => min($page * $perPage, $total),
         ];
     }
-
     protected function fetchResult($query): array
     {
         return $query->executeQuery()->fetchAllAssociative();

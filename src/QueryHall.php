@@ -86,16 +86,6 @@ abstract class QueryHall
 
     }
 
-//    public function getPaginatedResult(): array
-//    {
-//        $this->filter();
-//        $PaginatedQueryBuilder = clone $this->QueryBuilder;
-//        $meta = $this->getPaginationMeta(clone $PaginatedQueryBuilder, $this->perPage(), $this->currentPage());
-//        $this->paginate($PaginatedQueryBuilder, $this->perPage(), $this->currentPage());
-//        $data = $this->fetchResult($PaginatedQueryBuilder);
-//
-//        return ['data' => $data, 'meta' => $meta];
-//    }
 
     public function getPaginatedResult(): array
     {
@@ -110,8 +100,6 @@ abstract class QueryHall
 
         return ['data' => $transformedData, 'meta' => $meta];
     }
-
-
 
 
     // responsible for returning the pagination meta as an array
