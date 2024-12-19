@@ -6,11 +6,12 @@ use Koochik\QueryHall\QueryHall;
 
 final class SortAndPaginate extends QueryHall
 {
+    private bool $is_PostgreSQL = false;
+    private int $parameterCounter = 0;
 
-    private bool $is_PostgreSQL=false;
-
-    public function TypePostgreSQL(){
-        $this->is_PostgreSQL=true;
+    public function TypePostgreSQL(): void
+    {
+        $this->is_PostgreSQL = true;
     }
 
     protected function paginate($query, $perPage, $page): void
@@ -18,11 +19,12 @@ final class SortAndPaginate extends QueryHall
         $offset = ($page - 1) * $perPage;
         $query->setFirstResult($offset)->setMaxResults($perPage);
     }
+
     protected function getPaginationMeta($query, $perPage, $page): array
     {
-        if($this->is_PostgreSQL){
+        if ($this->is_PostgreSQL) {
             $query->select('COUNT(*) OVER() as total');
-        }else{
+        } else {
             $query->select('COUNT(*) as total');
         }
 
@@ -39,6 +41,7 @@ final class SortAndPaginate extends QueryHall
             'to' => min($page * $perPage, $total),
         ];
     }
+
     protected function fetchResult($query): array
     {
         return $query->executeQuery()->fetchAllAssociative();
@@ -50,8 +53,16 @@ final class SortAndPaginate extends QueryHall
         $query->orderBy($basedOn, $orderDirection);
     }
 
+    private function generateUniqueParamName(string $column): string
+    {
+        $this->parameterCounter++;
+        return $column . '_param_' . $this->parameterCounter;
+    }
+
     protected function filter_where($query, string $column, string $condition, $value): void
     {
+        $paramName = $this->is_PostgreSQL ? $this->generateUniqueParamName($column) : $column;
+
         switch ($condition) {
             case '=':
             case '!=':
@@ -59,21 +70,22 @@ final class SortAndPaginate extends QueryHall
             case '>':
             case '>=':
             case '<=':
-                $query->andWhere($column.' '.$condition.' :'.$column);
-                $query->setParameter($column, $value);
+                $query->andWhere($column . ' ' . $condition . ' :' . $paramName);
+                $query->setParameter($paramName, $value);
                 break;
             case 'LIKE':
-                $query->andWhere($column.' LIKE :'.$column);
-                $query->setParameter($column, '%'.$value.'%');
+                $query->andWhere($column . ' LIKE :' . $paramName);
+                $query->setParameter($paramName, '%' . $value . '%');
                 break;
             default:
                 break;
         }
-
     }
 
     protected function filter_orWhere($query, string $column, string $condition, $value): void
     {
+        $paramName = $this->is_PostgreSQL ? $this->generateUniqueParamName($column) : $column;
+
         switch ($condition) {
             case '=':
             case '!=':
@@ -81,16 +93,15 @@ final class SortAndPaginate extends QueryHall
             case '>':
             case '>=':
             case '<=':
-                $query->orWhere($column.' '.$condition.' :'.$column);
-                $query->setParameter($column, $value);
+                $query->orWhere($column . ' ' . $condition . ' :' . $paramName);
+                $query->setParameter($paramName, $value);
                 break;
             case 'LIKE':
-                $query->orWhere($column.' LIKE :'.$column);
-                $query->setParameter($column, '%'.$value.'%');
+                $query->orWhere($column . ' LIKE :' . $paramName);
+                $query->setParameter($paramName, '%' . $value . '%');
                 break;
             default:
                 break;
         }
-
     }
 }
